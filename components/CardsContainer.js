@@ -4,21 +4,32 @@ import {
   StyleSheet, 
   Dimensions,
   Animated,
-  PanResponder
+  PanResponder,
+  LayoutAnimation,
+  UIManager
 } from 'react-native'
 
 const SCREEN_WIDTH = Dimensions.get('window').width
+const SWIPE_TRESHOLD = SCREEN_WIDTH * 0.40
 
 class CardsContainer extends Component{
   constructor(props){
     super(props)
+
     const position = new Animated.ValueXY()
     const panResponder = PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onPanResponderMove: (event, gesture) => {
         position.setValue({ x: gesture.dx, y: gesture.dy })
       },
-      onPanResponderRelease: (event, gesture) => {}
+      onPanResponderRelease: (event, gesture) => {
+        if(gesture.dx > SWIPE_TRESHOLD)
+          this.completeSwipe('right')
+        else if(gesture.dx < -SWIPE_TRESHOLD)
+          this.completeSwipe('left')
+        else
+          this.resetPosition()
+      }
     })
 
     this.state = {
@@ -27,6 +38,32 @@ class CardsContainer extends Component{
       index: 0
     }
   }
+
+  componentWillUpdate() {
+    UIManager.setLayoutAnimationEnabledExperimental && UIManager.setLayoutAnimationEnabledExperimental(true);
+    LayoutAnimation.spring();
+  }
+
+  completeSwipe(direction) {
+    const x = (direction === 'right' ? SCREEN_WIDTH + 50 : -SCREEN_WIDTH - 50)
+
+    Animated.timing(this.state.position, {
+      toValue: {x, y:0},
+      duration: 250
+    }).start(() => this.onCompleteSwipe(direction))
+  }
+
+  onCompleteSwipe(){
+    this.setState({ index: this.state.index + 1})
+    this.state.position.setValue({ x:0, y:0 })
+  }
+
+  resetPosition(){
+    Animated.spring(this.state.position, {
+      toValue: {x:0, y:0}
+    }).start()
+  }
+
   getCardStyle() {
     const { position } = this.state
     const rotationX = SCREEN_WIDTH * 2
@@ -41,8 +78,9 @@ class CardsContainer extends Component{
       transform: [{ rotate }]
     }
   }
+  
   renderCards(){
-    return this.props.data.map((item, index) =>{
+    return this.props.data.map((item, index) => {
       if(index === this.state.index){
         return (
           <Animated.View 
@@ -56,11 +94,8 @@ class CardsContainer extends Component{
       }
       return(
         <Animated.View
-          style={[
-            styles.cardStyle, 
-            {transform: [{rotate: '0deg'}]},
-            {top: 10 * (index - this.state.index)} ]}
           key={item.id}
+          style={[styles.cardStyle, {transform: [{ rotate: '0deg'}]}, { top: 10 * (index - this.state.index) }]}
         >
           {this.props.renderCard(item)}
         </Animated.View>
