@@ -1,6 +1,7 @@
 import React , {Component} from 'react'
 import {
   View, 
+  Text,
   StyleSheet, 
   Dimensions,
   Animated,
@@ -80,13 +81,24 @@ class CardsContainer extends Component{
   }
   
   renderCards(){
+    if(this.state.index >= this.props.data.length){
+      return(
+        <View>
+          <Text>No cards left</Text>
+        </View>
+      )
+    }
     return this.props.data.map((item, index) => {
+      if(index < this.state.index)
+        return null
       if(index === this.state.index){
         return (
           <Animated.View 
-            key={item.id}
-            style={[styles.cardStyle, this.getCardStyle()]}
+            style={[
+              styles.cardStyle, 
+              this.getCardStyle()]}
             {...this.state.panResponder.panHandlers}
+            key={item.id}
           >
               {this.props.renderCard(item)}
           </Animated.View>
